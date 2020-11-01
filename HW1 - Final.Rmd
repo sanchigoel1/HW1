@@ -1,0 +1,165 @@
+---
+title: "Homework Assignment 1"
+author: "Sanchi Goel"
+date: 'Assigned: Oct 24, 2020, Due Sun Nov 01, 2020 11:59PM'
+output:
+  html_document:
+    toc: yes
+    toc_float: yes
+    code_folding: hide
+---
+### Data frame basics
+
+```{r}
+nyc <- read.csv('nycflights.csv')
+nyc$carrier <- as.factor(nyc$carrier)
+nyc$tailnum <- as.factor(nyc$tailnum)
+nyc$origin <- as.factor(nyc$origin)
+nyc$dest <- as.factor(nyc$dest)
+nyc$X <- NULL
+str(nyc)
+```
+
+### Data Exploration
+
+There are `r length(levels(nyc$carrier))` airlines
+
+Following is a list: `r levels(nyc$carrier)`
+
+No. of airlines with the code'OO' are: `r nrow(nyc[nyc$carrier=="OO",])`
+
+The shortest flight out of any NYC airport is `r min(nyc$air_time, na.rm=TRUE)`
+
+No. of flights with code "UA" on Jan 12th 2013 were `r nrow(nyc[nyc$carrier=="UA" & nyc$year=="2013" & nyc$month=="1" & nyc$day=="12", ])`
+
+### Arrival Delay
+
+Average arrival delay for all airports and all airlines combined in Jan 2013 was `r delay <- nyc[nyc$month=="1" & nyc$year == "2013",]
+round(mean(delay$arr_delay, na.rm=TRUE),2) 
+` minutes.
+
+The median arrival delay for all airports and all airlines combined in Jan 2013 was `r median(delay$arr_delay, na.rm=TRUE)` minutes.
+
+Most flights arrive earlier than expected however some flights have a large delay leading to the positive mean. 
+
+
+### Airline Performance
+
+
+#### Average arrival delays by airlines: 
+```{r}
+delayair <- round(tapply(nyc$arr_delay, nyc$carrier, mean, na.rm=TRUE),2)
+delayair
+```
+
+
+#### BarPlot of Arrival Delays
+```{r}
+barplot((tapply(nyc$arr_delay, nyc$carrier, mean, na.rm=TRUE))
+)
+```
+
+`r names(delayair[delayair==max(delayair)])` has the highest average delay of `r max(tapply(nyc$arr_delay, nyc$carrier, mean, na.rm=TRUE))` minutes. 
+
+`r names(delayair[delayair==min(delayair)])` has the smallest average arrival delay of `r min(tapply(nyc$arr_delay, nyc$carrier, mean, na.rm=TRUE))` minutes. 
+
+Both AS and HA have negative arrival delays meaning they arrive early on average. 
+
+
+### Air Gain
+```{r}
+nyc$airgain <- nyc$dep_delay - nyc$arr_delay
+
+```
+
+#### Descriptive Statistics of Airgain
+```{r}
+summary(nyc$airgain)
+```
+
+#### Summary Graphics
+```{r}
+hist(nyc$airgain)
+```
+
+Airlines gain 5.6 minutes on average. 
+
+
+#### Average Airgain for Airlines:
+```{r}
+tapply(nyc$airgain, nyc$carrier, mean, na.rm=TRUE)
+```
+
+F9 and FL do the worst job whereas HA and AS do the best. 
+
+
+### Merging Data Frames
+
+#### Data Cleaning 
+```{r}
+planes <- read.csv('planes.csv')
+planes$X <- NULL
+planes$tailnum <- as.factor(planes$tailnum)
+planes$type <- as.factor(planes$type)
+planes$engine <- as.factor(planes$engine)
+planes$model <- as.factor(planes$model)
+planes$year <- as.factor(planes$year)
+planes$seats <- as.factor(planes$seats)
+planes$engines <- as.factor(planes$engines)
+planes$manufacturer <- as.factor(planes$manufacturer)
+str(planes)
+
+```
+
+#### Merging Data Frames
+```{r}
+merged <- merge(nyc, planes, by.x="tailnum", by.y = "tailnum", sort=TRUE)
+str(merged)
+
+```
+
+### Interesting Questions
+
+1. Who are the top 10 manufacturers of planes that fly out of NYC airports?
+```{r}
+library(plyr)
+man_freq <- count(merged, 'manufacturer')
+man_freq <- man_freq[order(-man_freq$freq),]
+man_freq[1:10,]
+
+```
+
+
+2. Is a particular carrier associated more with the most popular manufacturer Boeing? 
+```{r}
+boeing <- merged[merged$manufacturer=="BOEING",]
+boeing_carrier <- count(boeing, 'carrier')
+boeing_carrier <- boeing_carrier[order(-boeing_carrier$freq),]
+boeing_carrier
+
+```
+United Airlines employs over half of the Boeing aircrafts flying out of NYC. 
+
+
+3. Does the age of the aircraft have any relationship with average distance travelled? 
+```{r}
+barplot(tapply(merged$distance, merged$year.y, mean, na.rm=TRUE))
+
+```
+
+We can clearly see that the maximum average distances are covered by older planes (1990 and older)
+
+
+4. Does the number of engines affect the distance covered? 
+```{r}
+tapply(merged$distance, merged$engines, median, na.rm=TRUE)
+
+```
+Median distance covered sharply decreases as the number of engines increase. 
+
+
+5. What is the most common engine-type for planes flying out of NYC?
+```{r}
+table(merged$engine)
+```
+The most common engine is Turbo-fan. 
